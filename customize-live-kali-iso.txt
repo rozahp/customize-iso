@@ -129,7 +129,7 @@ sudo mksquashfs CUSTOM extracted/live/filesystem.squashfs -comp xz
 ##
 
 ## 
-## 11. Remove old md5sum and sha256sum and calculate new ones:
+## 12. Remove old md5sum and sha256sum and calculate new ones:
 ##
 
 cd extracted
@@ -138,7 +138,7 @@ find -type f -print0 | sudo xargs -0 md5sum | grep -v isolinux/boot.cat | sudo t
 find -type f -print0 | sudo xargs -0 sha256sum | grep -v isolinux/boot.cat | sudo tee sha256sum.txt
 
 ##
-## 12. CREATE ISO IMAGE
+## 13. CREATE ISO IMAGE
 ##
 
 ## OLD WAY
