@@ -1,0 +1,33 @@
+##
+## Description: How to edit an ISO-image 
+##
+
+##
+## 1. CREATE DIRS
+##
+mkdir ISO_CUSTOM
+mkdir ISO_ORG
+
+##
+## 2. MOUNT ORG ISO
+##
+
+mount -t iso9660 -o loop image.iso ISO_ORG
+
+##
+## 3. COPY FILES TO CUSTOM DIR
+##
+cd ISO_ORG
+tar cf - . | (cd ../ISO_CUSTOM; tar xfp -)
+
+##
+## 4. EDIT CUSTOM ISO
+##
+
+cd ISO_CUSTOM
+
+genisoimage -o ../new-custom-iso.iso -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -J -R -V "Linux Custom ISO" .
+
+##
+## EOF
+##

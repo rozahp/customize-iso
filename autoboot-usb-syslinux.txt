@@ -1,0 +1,44 @@
+##
+## Filename: Create an autoboot USB-drive
+##
+
+##
+## 1. Create FAT32 partition
+##
+
+fdisk ..
+fatlabel /dev/sdX1 "CUSTOMLINUX"
+
+##
+## 2. Copy contents to USB
+##
+
+cp -r * /dev/sdX1
+
+##
+## 3. Change filenames
+##
+
+mv /dev/sdX1/isolinux /dev/sdX1/syslinux
+mv /dev/sdX1/syslinux/syslinux.bin /dev/sdX1/syslinux/syslinux.bin
+mv /dev/sdX1/syslinux/syslinux.cfg /dev/sdX1/syslinux/syslinux.cfg
+
+##
+## 4. Edit /syslinux/syslinux.cfg
+##
+
+Remove: file=/cdrom/preseed/linuxmint.seed
+Add:    live-media-path=/casper/    ignore_uuid
+
+##
+## 5. Install syslinux as a boot loader
+##
+
+sudo apt-get install syslinux mtools
+sudo syslinux -i /dev/sdX1 [-d directory_where_syslinux_resides]
+sudo dd conv=notrunc bs=440 count=1 if=mbr.bin of=/dev/sdX
+sudo parted /dev/sdX set 1 boot on
+
+##
+## EOF
+##

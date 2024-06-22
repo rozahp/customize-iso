@@ -1,0 +1,141 @@
+##
+## Description: Customize Linux LiveCD ISO
+##
+
+##
+## 1. Install the required softwares
+##
+
+sudo aptitude install squashfs-tools genisoimage
+
+##
+## 2. Obtain the base system
+##
+
+mkdir ~/mylivecd
+
+cp ubuntu-17.10.1-desktop-amd64.iso ~/mylivecd
+
+##
+## 3. Extract the CD .iso contents
+##
+
+cd ~/mylivecd
+mkdir mnt
+sudo mount -o loop ubuntu-17.10.1-desktop-amd64.iso mnt
+mkdir extracted
+sudo rsync --exclude=/casper/filesystem.squashfs -a mnt/ extracted
+
+##
+## 4. Extract the Desktop system
+##
+
+sudo unsquashfs mnt/casper/filesystem.squashfs
+sudo mv squashfs-root edit
+
+##
+## 5. Prepare the chroot
+##
+
+sudo cp /etc/resolv.conf edit/etc/
+#sudo cp /etc/hosts edit/etc/
+
+xhost +        //it will enable you to run GUI applications like synaptic but
+               //this will disable the x server access control, so use it at your own risk.
+
+sudo mount --bind /dev/ edit/dev
+sudo chroot edit
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devpts none /dev/pts
+
+export HOME=/root
+export LC_ALL=C
+
+##
+## 6. apt-get prerequisites
+##
+
+dbus-uuidgen > /var/lib/dbus/machine-id
+
+dpkg-divert --local --rename --add /sbin/initctl
+ln -s /bin/true /sbin/initctl
+
+dpkg-query -W --showformat='${Installed-Size}\t${Package}\n' | sort -nr | less
+
+##
+## 7. Install software at your hearts content
+## 
+
+apt update
+
+apt install some-package
+// or
+aptitude install packag1 package2 ....
+// or
+aptitude purge package-name
+// or
+dpkg -i some_package.deb
+
+##
+## 8. Cleanup
+##
+
+aptitude clean
+rm -rf /tmp/* ~/.bash_history
+rm /etc/hosts
+rm /var/lib/dbus/machine-id
+rm /sbin/initctl
+dpkg-divert --rename --remove /sbin/initctl
+
+umount /proc || umount -lf /proc
+umount /sys
+umount /dev/pts
+exit                      
+sudo umount edit/dev
+xhost -
+
+##
+## 9. Regenerate manifest (ignore any warning):
+## 
+
+sudo bash
+chmod +w extracted/casper/filesystem.manifest
+chroot edit dpkg-query -W --showformat='${Package} ${Version}\n' > extracted/casper/filesystem.manifest
+exit
+sudo cp extracted/casper/filesystem.manifest extracted/casper/filesystem.manifest-desktop
+sudo sed -i '/ubiquity/d' extracted/casper/filesystem.manifest-desktop
+sudo sed -i '/casper/d' extracted/casper/filesystem.manifest-desktop
+
+##
+## 10. Compress filesystem
+##
+
+sudo rm extracted/casper/filesystem.squashfs
+sudo mksquashfs edit extracted/casper/filesystem.squashfs -comp xz
+
+##
+## 11. Update some required files:
+## 
+
+sudo bash
+printf $(du -sx --block-size=1 edit | cut -f1) > extracted/casper/filesystem.size
+exit
+
+open extracted/README.diskdefines file with a text editor and change the name of the disk.
+
+Remove old md5sum and calculate new md5sums:
+
+cd extracted
+sudo rm MD5SUMS
+find -type f -print0 | sudo xargs -0 md5sum | grep -v isolinux/boot.cat | sudo tee MD5SUMS
+
+##
+## 12. Create ISO image:
+##
+
+sudo mkisofs -D -r -V "$IMAGE_NAME" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -o ../ubuntu-17.10.1-customized-amd64.iso .
+
+##
+## EOF
+##

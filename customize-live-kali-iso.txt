@@ -1,0 +1,162 @@
+##
+## CUSTOMIZE LINUX LIVECD ISO 
+##
+
+Updated: 2024-06-22
+
+Tested with: kali-linux-2024.2-live-amd64.iso
+
+##
+## 1. INSTALL THE REQUIRED SOFTWARES 
+##
+
+sudo apt install squashfs-tools genisoimage
+
+##
+## 2. OBTAIN THE BASE SYSTEM
+##
+
+mkdir ~/mylivecd
+
+cp kali-linux-2024.2-live-amd64.iso ~/mylivecd
+
+##
+## 3. EXTRACT THE CD .ISO CONTENTS 
+##
+
+cd ~/mylivecd
+mkdir mnt
+sudo mount -o loop kali-linux-2024.2-live-amd64.iso mnt
+mkdir extracted
+sudo rsync --exclude=/live/filesystem.squashfs -a mnt/ extracted
+
+##
+## 4. EXTRACT THE FILE SYSTEM
+##
+
+sudo unsquashfs mnt/live/filesystem.squashfs
+sudo mv squashfs-root CUSTOM
+
+##
+## 5. PREPARE THE CHROOT
+##
+
+sudo cp /etc/resolv.conf CUSTOM/etc/
+### sudo cp /etc/hosts CUSTOM/etc/ ## NOT WORKING ON KALI
+
+xhost +        //it will enable you to run GUI applications like synaptic but
+               //this will disable the x server access control, so use it at your own risk.
+
+sudo mount --bind /dev CUSTOM/dev
+sudo chroot CUSTOM
+mount -t proc none /proc
+mount -t sysfs none /sys
+mount -t devpts none /dev/pts
+
+export HOME=/root
+export LC_ALL=C
+
+##
+## 6. GET PREREQUISITES
+##
+
+dbus-uuidgen > /var/lib/dbus/machine-id
+
+dpkg-divert --local --rename --add /sbin/initctl
+ln -s /bin/true /sbin/initctl
+
+dpkg-query -W --showformat='${Installed-Size}\t${Package}\n' | sort -nr | less
+
+##
+## 7. INSTALL SOFTWARE AT YOUR HEARTS CONTENT 
+## 
+
+apt update
+
+apt install some-package
+// or
+aptitude install packag1 package2 ....
+// or
+apt remove package-name
+// or
+dpkg -i some_package.deb
+
+##
+## 8. CLEANUP SYSTEM
+##
+
+apt clean; apt autoclean; apt autopruge; apt autoremove
+rm -rf /tmp/* ~/.bash_history
+rm /etc/hosts
+rm /var/lib/dbus/machine-id
+rm /sbin/initctl
+dpkg-divert --rename --remove /sbin/initctl
+
+umount /proc || umount -lf /proc
+umount /sys
+umount /dev/pts
+exit                      
+sudo umount CUSTOM/dev
+xhost -
+
+##
+## 9. REGENERATE MANIFEST (IGNORE ANY WARNING) #### MAYBE REMOVE ??
+## 
+
+sudo bash
+chroot CUSTOM dpkg-query -W --showformat='${Package}\t${Version}\n' > extracted/live/filesystem.packages
+exit
+## sudo cp extracted/live/filesystem.manifest extracted/live/filesystem.manifest-desktop ### CAN PROBABLY BE IGNORED
+## sudo sed -i '/ubiquity/d' extracted/live/filesystem.manifest-desktop                  ### CAN PROBABLY BE IGNORED
+## sudo sed -i '/live/d' extracted/live/filesystem.manifest-desktop                      ### CAN PROBABLY BE IGNORED
+
+##
+## 10. COMPRESS FILESYSTEM (TAKES LONG TIME)
+##
+
+sudo rm extracted/live/filesystem.squashfs ### NOT NEEDED - REMOVED EARLIER!!!
+sudo mksquashfs CUSTOM extracted/live/filesystem.squashfs -comp xz
+
+##
+## 11. UPDATE REQUIRED FILES ## CAN PROBABLY BE IGNORED
+## 
+
+## sudo bash
+## printf $(du -sx --block-size=1 CUSTOM | cut -f1) > extracted/live/filesystem.size
+## exit
+##
+## open extracted/README.diskdefines file with a text editor and change the name of the disk.
+##
+
+## 
+## 11. Remove old md5sum and sha256sum and calculate new ones:
+##
+
+cd extracted
+sudo rm md5sum.txt sha256sum.txt
+find -type f -print0 | sudo xargs -0 md5sum | grep -v isolinux/boot.cat | sudo tee md5sum.txt
+find -type f -print0 | sudo xargs -0 sha256sum | grep -v isolinux/boot.cat | sudo tee sha256sum.txt
+
+##
+## 12. CREATE ISO IMAGE
+##
+
+## OLD WAY
+
+sudo mkisofs -D -r -V "Linux Custom ISO" -cache-inodes -J -l -b isolinux/isolinux.bin -c isolinux/boot.cat -allow-limited-size -no-emul-boot -boot-load-size 4 -boot-info-table -o ../kali-linux-2024.2-live-amd64-custom.iso .
+
+isohybrid kali-linux-2024.2-live-amd64-custom.iso
+
+## XORRISO WAY
+
+sudo xorriso -as mkisofs -R -r -l -cache-inodes -iso-level 3 -isohybrid-mbr /usr/lib/ISOLINUX/isohdpfx.bin -partition_offset 16 -A "Kali Linux" -p "live-build 20230502+kali3; https://salsa.debian.org/live-team/live-build" -publisher "Kali" -V "Kali Live" --modification-date=2024052714102300 -b isolinux/isolinux.bin -c isolinux/boot.cat -no-emul-boot -boot-load-size 4 -boot-info-table -eltorito-alt-boot --efi-boot boot/grub/efi.img -append_partition 2 0x01 extracted/boot/grub/efi.img -o live-image-amd64.custom.hybrid.iso extracted
+
+##
+## 14. DD TO USB
+##
+
+sudo dd if=kali-linux-2024.2-live-amd64-custom.iso of=/dev/sdX
+
+##
+## EOF
+##
