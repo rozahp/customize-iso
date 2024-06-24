@@ -10,7 +10,7 @@ Tested with: kali-linux-2024.2-live-amd64.iso
 ## 1. INSTALL THE REQUIRED SOFTWARES 
 ##
 
-sudo apt install squashfs-tools genisoimage
+sudo apt install squashfs-tools genisoimage xorriso
 
 ##
 ## 2. OBTAIN THE BASE SYSTEM
