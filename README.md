@@ -4,16 +4,15 @@ Simple instructions on how to customize ISOs like live kali iso
 
 ### Edit Kali Live ISO
 
-customize-live-kali-iso.txt
 [customize-live-kali-iso.txt](customize-live-kali-iso.txt)
 
 ### Edit Legacy Live ISO
 
-autoboot-usb-syslinux.txt
+[customize-live-iso.txt](customize-live-iso.txt)
 
 ### Misc Stuff
 
-customize-live-iso.txt
-edit-iso-images.txt
+[autoboot-usb-syslinux.txt](autoboot-usb-syslinux.txt)
+[edit-iso-images.txt](edit-iso-images.txt)
 
 ## EOF
