@@ -5,6 +5,7 @@ Simple instructions on how to customize ISOs like live kali iso
 ### Edit Kali Live ISO
 
 customize-live-kali-iso.txt
+customize-live-kali-iso.txt](customize-live-kali-iso.txt)
 
 ### Edit Legacy Live ISO
 
